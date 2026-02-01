@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	controller "github.com/Basuru-Jagadakshi/magic-stream-movies/Server/MagicStreamMoviesServer/controllers"
+	"github.com/Basuru-Jagadakshi/magic-stream-movies/Server/MagicStreamMoviesServer/routes"
 )
 
 func main(){
@@ -15,11 +15,9 @@ func main(){
 		c.String(200, "Hello, MagicStreamMovies")
 	})
 
-	router.GET("/movies", controller.GetMovies())
+	routes.SetupUnProtectedRoutes(router)
 
-	router.GET("/movie/:imdb_id", controller.GetMovie())
-
-	router.POST("/addmovie", controller.AddMovie())
+	routes.SetupProtectedRoutes(router)
 
 	if err := router.Run(":8080");err!=nil{
 		fmt.Println("Failed to start server", err)
