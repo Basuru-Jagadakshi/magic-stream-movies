@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/Basuru-Jagadakshi/magic-stream-movies/Server/MagicStreamMoviesServer/database"
 	"github.com/Basuru-Jagadakshi/magic-stream-movies/Server/MagicStreamMoviesServer/routes"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func main(){
@@ -15,9 +21,32 @@ func main(){
 		c.String(200, "Hello, MagicStreamMovies")
 	})
 
-	routes.SetupUnProtectedRoutes(router)
+	var client *mongo.Client = database.Connect()
 
-	routes.SetupProtectedRoutes(router)
+	if err := client.Ping(context.Background(), nil); err != nil {
+		log.Fatalf("Failed to reach server: %v", err)
+	}
+
+	defer func() {
+		err := client.Disconnect(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to disconnect from MongoDB: %v", err)
+		}
+	}()
+
+	routes.SetupUnProtectedRoutes(router, client)
+
+	routes.SetupProtectedRoutes(router, client)
+
+	config := cors.Config{}
+
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PATCH"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.MaxAge = 12 * time.Hour
+
+	router.Use(cors.New(config))
 
 	if err := router.Run(":8080");err!=nil{
 		fmt.Println("Failed to start server", err)
